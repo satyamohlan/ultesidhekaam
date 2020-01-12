@@ -1,43 +1,26 @@
-const int rmf = 9;        //Left motor forward
-const int rmb = 10;       //Left motor backward
-const int lmf = 5;        //Right motor forward
-const int lmb = 3;        //Right motor backward
-const int trigPin_l = 11; //right sensor trigger pin
-const int echoPin_l = 12; //right sensor echo pin
-const int trigPin_r = 7;  //left sensor trigger pin
-const int echoPin_r = 6;  //sraight sensor echo pin 
-const int trigPin_s = 4;  //straight sensor trigger pin
-const int echoPin_s = 8;  //left sensor echo pin
-const int trigPin_b = 26;
-const int echoPin_b = 2;
-//establish variables for duration of the ping, and the distance result in cm
-int lm_status, rm_status; //left motor status, right motor status, 0 = none , 1 = forward, -1 = backward
-int tiles = 0;
-int pref[3] = {1, -2, 2};
-int tiles_to_cover = 32;
-int pos[2] = {1, 1};
-int len[2] = {4, 8};
-int arr[200];
-int last[200];
-int count = 0;
-int togo[200] = {};
-int tgcount;
+const int rmb = 6;      //Left motor forward
+const int rmf = 5;      //Left motor backward
+const int lmb = 8;      //Right motor forward
+const int lmf = 7;      //Right motor backward
+const int ultra_l = 4;  //right sensor trigger pin
+const int ultra_f = 3;  //right sensor echo pin
+const int ultra_r = 2;  //left sensor trigger pin
+const int ultra_b = 10; //sraight sensor echo pin
+
 int rotation = 0;
-bool right = false;
-bool left = false;
-bool front = false;
-String direction = "forward";
-int lstcounter = 0;
-int corner = 0;
+int degree = 0;
+int glength = 0;
+String direction = "f";
+#define outputA 9
+#define outputB 2
+
 int checkpoint = 0;
+bool dleft = false;
+bool dright = false;
+bool dfront = false;
 int hazarder = 0;
 int victimer = 0;
-/*const int trigPin= 11;
-  const int echoPin= 12;
-  const int trigPin2= 7;
-  const int echoPin2= 6;
-*/
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+int gogoagone[64][2];
 void setup()
 {
   Serial.begin(9600);
@@ -45,22 +28,23 @@ void setup()
   pinMode(lmb, OUTPUT);
   pinMode(rmf, OUTPUT);
   pinMode(rmb, OUTPUT);
-  pinMode(trigPin_l, OUTPUT);
-  pinMode(trigPin_s, OUTPUT);
-  pinMode(trigPin_r, OUTPUT);
-  pinMode(echoPin_l, INPUT);
-  pinMode(echoPin_s, INPUT);
-  pinMode(echoPin_r, INPUT);
-  pinMode(13, INPUT);
+  pinMode(ultra_l, OUTPUT);
+  pinMode(ultra_f, OUTPUT);
+  pinMode(ultra_r, OUTPUT);
+  pinMode(9, INPUT);
+  pinMode(2, INPUT);
   pinMode(20, INPUT);
 
-leftTurn();
-rightTurn();
-forward();
+ visitall(0, 0);
 }
 
 void loop()
 {
+  /*rightTurn();
+  delay(1000);
+  leftTurn();
+  delay(1000);
+*/
 }
 
 long microsecondsToCentimeters(long microseconds)
@@ -68,36 +52,403 @@ long microsecondsToCentimeters(long microseconds)
   return microseconds / 29 / 2;
 }
 
+void Front(int x, int y)
+{
+  forward();
+  if (direction == "f")
+  {
+    x += 1;
+  }
+  if (direction == "b")
+  {
+    x -= 1;
+  }
+  if (direction == "l")
+  {
+    y += 1;
+  }
+  if (direction == "r")
+  {
+    y -= 1;
+  }
+  visitall(x, y);
+  retreat();
+}
+void cursedRight(int x, int y)
+{
+  rightTurn();
+  forward();
+  if (direction == "f")
+  {
+    x += 1;
+  }
+  if (direction == "b")
+  {
+    x -= 1;
+  }
+  if (direction == "l")
+  {
+    y += 1;
+  }
+  if (direction == "r")
+  {
+    y -= 1;
+  }
+  visitall(x, y);
+ // leftTurn();
+  
+  retreat();
+   delay(500);
+
+  leftTurn();
+}
+void cursedLeft(int x, int y)
+{
+  leftTurn();
+  forward();
+  if (direction == "f")
+  {
+    x += 1;
+  }
+  if (direction == "b")
+  {
+    x -= 1;
+  }
+  if (direction == "l")
+  {
+    y += 1;
+  }
+  if (direction == "r")
+  {
+    y -= 1;
+  }
+   // rightTurn();
+  visitall(x, y);
+   // leftTurn();
+ 
+  retreat();
+    delay(500);
+
+  rightTurn();
+}
+void visitall(int x, int y)
+{
+  gogoagone[glength][0] = x;
+  gogoagone[glength][1] = y;
+  glength++;
+  Serial.println("visitall");
+  delay(500);
+  measure();
+
+  if (dfront == true && dleft == false && dright == false)
+  {
+    if (valid(x, y, "f"))
+    {
+      Front(x, y);
+    }
+  }
+  if (dright == true && dleft == false && dfront == false)
+  {
+    if (valid(x, y, "r"))
+    {
+      cursedRight(x, y);
+    }
+  }
+  if (dleft == true && dright == false && dfront == false)
+  {
+    if (valid(x, y, "l"))
+    {
+      cursedLeft(x, y);
+    }
+  }
+  if (dright == true && dleft == true && dfront == false)
+  {
+    if (valid(x, y, "r"))
+    {
+      cursedRight(x, y);
+    }
+    if (valid(x, y, "l"))
+    {
+
+      cursedLeft(x, y);
+    }
+  }
+  if (dright == true && dleft == false && dfront == true)
+  {
+    if (valid(x, y, "f"))
+    {
+
+      Front(x, y);
+    }
+    if (valid(x, y, "r"))
+    {
+
+      cursedRight(x, y);
+    }
+  }
+  if (dright == false && dleft == true && dfront == true)
+  {
+    if (valid(x, y, "f"))
+    {
+      Front(x, y);
+    }
+    if (valid(x, y, "l"))
+    {
+      cursedLeft(x, y);
+    }
+  }
+  if (dright == true && dleft == true && dfront == true)
+  {
+
+    if (valid(x, y, "f"))
+    {
+      Front(x, y);
+    }
+    if (valid(x, y, "r"))
+    {
+      cursedRight(x, y);
+    }
+    if (valid(x, y, "l"))
+    {
+      cursedLeft(x, y);
+    }
+  }
+}
+
+bool valid(int x, int y, String s){
+  int tx;
+  int ty;
+  if (s == "f")
+  {
+    if (direction == "f")
+    {
+    tx = x + 1;
+    }
+    if (direction == "b")
+    {
+    tx = x - 1;
+    }
+    if (direction == "l")
+    {
+    ty = y + 1;
+    }
+    if (direction == "r")
+    {
+    ty =y- 1;
+    }
+  }
+  if (s == "l")
+  {
+if (direction == "f")
+    {
+    ty = y + 1;
+    }
+    if (direction == "b")
+    {
+      ty =y- 1;
+    }
+    if (direction == "l")
+    {
+      tx =x- 1;
+    }
+    if (direction == "r")
+    {
+      tx =x+1;
+    }
+  }
+  if (s == "r")
+  {
+if (direction == "f")
+    {
+    ty = y- 1;
+    }
+    if (direction == "b")
+    {
+      ty=y+ 1;
+    }
+    if (direction == "l")
+    {
+      tx =x+ 1;
+    }
+    if (direction == "r")
+    {
+      tx =x-1;
+    }  }
+
+  for (int i = 0; i < glength; i++)
+  {
+    if (gogoagone[i][0] == tx && gogoagone[i][1] == ty)
+    {
+      return false;
+    }
+    Serial.print("x:");
+    Serial.print(gogoagone[i][0]);
+    Serial.print("y:");
+    Serial.print(gogoagone[i][1]);
+  }
+
+  return true;
+}
+void measure()
+{
+  pinMode(ultra_l, OUTPUT);
+  pinMode(ultra_f, OUTPUT);
+  pinMode(ultra_r, OUTPUT);
+  pinMode(ultra_b, OUTPUT);
+
+  bool right = false;
+  bool left = false;
+  bool front = false;
+  bool back = false;
+
+  long duration_r, cm_r, duration_l, cm_l, duration_s, cm_s, duration_b, cm_b;
+
+  digitalWrite(ultra_l, LOW);
+  delayMicroseconds(2);
+  digitalWrite(ultra_l, HIGH);
+  delayMicroseconds(5);
+  digitalWrite(ultra_l, LOW);
+  pinMode(ultra_l, INPUT);
+  duration_l = pulseIn(ultra_l, HIGH);
+  cm_l = microsecondsToCentimeters(duration_l);
+  if (cm_l > 1000)
+  {
+    cm_l = 500;
+  }
+
+  digitalWrite(ultra_r, LOW);
+  delayMicroseconds(2);
+  digitalWrite(ultra_r, HIGH);
+  delayMicroseconds(5);
+  digitalWrite(ultra_r, LOW);
+  pinMode(ultra_r, INPUT);
+  duration_r = pulseIn(ultra_r, HIGH);
+  cm_r = microsecondsToCentimeters(duration_r);
+  if (cm_r > 1000)
+  {
+    cm_r = 500;
+  }
+
+  digitalWrite(ultra_f, LOW);
+  delayMicroseconds(2);
+  digitalWrite(ultra_f, HIGH);
+  delayMicroseconds(5);
+  digitalWrite(ultra_f, LOW);
+  pinMode(ultra_f, INPUT);
+  duration_s = pulseIn(ultra_f, HIGH);
+  cm_s = microsecondsToCentimeters(duration_s);
+  if (cm_s > 1000)
+  {
+    cm_s = 500;
+  }
+  /*digitalWrite(ultra_b, LOW);
+  delayMicroseconds(2);
+  digitalWrite(ultra_b, HIGH);
+  delayMicroseconds(5);
+  digitalWrite(ultra_b, LOW);
+      pinMode(ultra_b, INPUT);
+  duration_b = pulseIn(ultra_b, HIGH);
+  cm_b = microsecondsToCentimeters(duration_b);
+  if (cm_b > 1000)
+  {
+    cm_b = 500;
+  }*/
+
+  if (cm_l >= 15)
+  {
+    left = true;
+  }
+  else
+  {
+    left = false;
+  }
+  if (cm_r >= 15)
+  {
+    right = true;
+  }
+  else
+  {
+    right = false;
+  }
+
+  if (cm_s >= 15)
+  {
+    front = true;
+  }
+  else
+  {
+    front = false;
+  }
+  Serial.print("front:");
+  Serial.println(cm_s);
+  Serial.print("left:");
+  Serial.println(cm_l);
+  Serial.print("right:");
+  Serial.println(cm_r);
+  /*if (direction == "f")
+  {*/
+  dfront = front;
+  dleft = left;
+  dright = right;
+  /*}
+
+  if (direction == "l")
+  {
+    dfront = right;
+    dleft = front;
+    dright = back;
+  }
+  if (direction == "r")
+  {
+    dfront = left;
+    dleft = back;
+    dright = front;
+  }
+  if (direction == "b")
+  {
+    dright = back;
+    dleft = right;
+    dleft = left;
+  }*/
+}
 void leftTurn()
 {
+  if (direction == "f")
+  {
+    direction = "l";
+  }
+  else if (direction == "l")
+  {
+    direction = "b";
+  }
+  else if (direction == "b")
+  {
+    direction = "r";
+  }
+  else if (direction == "r")
+  {
+    direction = "f";
+  }
+
   bool x;
   bool prevstate;
-  rotation = 0;
+  degree = 0;
 
-  int stripe = 0;
-  x = digitalRead(13);
-  if (x == HIGH)
-  {
-    stripe = 32;
-  }
-  if (x == LOW)
-  {
-    stripe = 32;
-  }
+  int stripe = 14;
+
   while ((true))
   {
     // put your main code here, to run repeatedly:
-
     prevstate = x;
-    x = digitalRead(A10);
+    x = digitalRead(9);
     if (x != prevstate && x == 1)
     {
-      rotation++;
+      degree++;
     }
-    if (rotation <= stripe)
+    if (degree <= stripe)
     {
-      analogWrite(rmf, 155);
-      analogWrite(lmb, 155);
+      analogWrite(rmf, 100);
+      analogWrite(lmb, 100);
       digitalWrite(rmb, LOW);
       digitalWrite(lmf, LOW);
     }
@@ -105,40 +456,46 @@ void leftTurn()
     {
       digitalWrite(rmf, LOW);
       digitalWrite(lmb, LOW);
+      delay(500);
       break;
     }
   }
 }
 void uturn()
 {
-
+  if (direction == "f")
+  {
+    direction = "b";
+  }
+  else if (direction == "l")
+  {
+    direction = "r";
+  }
+  else if (direction == "b")
+  {
+    direction = "f";
+  }
+  else if (direction == "r")
+  {
+    direction = "l";
+  }
   bool x;
   bool prevstate;
   float distance = 0;
-  int stripe = 0;
-  rotation = 0;
-
-  x = digitalRead(13);
-  if (x == HIGH)
-  {
-    stripe = 64;
-  }
-  if (x == LOW)
-  {
-    stripe = 64;
-  }
+  int stripe = 32;
+  degree = 0;
   while ((true))
   {
     prevstate = x;
-    x = digitalRead(13);
+    x = digitalRead(9);
     if (x != prevstate && x == 1)
     {
-      rotation++;
+      degree++;
     }
-    if (rotation <= stripe)
+    if (degree <= stripe)
     {
-      analogWrite(lmf, 155);
-      analogWrite(rmb, 155);
+      analogWrite(lmf, 100);
+      analogWrite(rmb, 100);
       digitalWrite(rmf, LOW);
       digitalWrite(lmb, LOW);
     }
@@ -154,35 +511,39 @@ void uturn()
 
 void rightTurn()
 {
+  if (direction == "f")
+  {
+    direction = "r";
+  }
+  else if (direction == "r")
+  {
+    direction = "b";
+  }
+  else if (direction == "b")
+  {
+    direction = "l";
+  }
+  else if (direction == "l")
+  {
+    direction = "f";
+  }
   bool x;
   bool prevstate;
-  rotation = 0;
-
-  int stripe = 0;
-  x = digitalRead(13);
-  if (x == HIGH)
-  {
-    stripe = 32;
-  }
-  if (x == LOW)
-  {
-    stripe = 32;
-  }
-
-  while (true)
+  degree = 0;
+  int stripe = 14;
+  while ((true))
   {
     // put your main code here, to run repeatedly:
-
     prevstate = x;
-    x = digitalRead(13);
+    x = digitalRead(9);
     if (x != prevstate && x == 1)
     {
-      rotation++;
+      degree++;
     }
-    if (rotation <= stripe)
+    if (degree <= stripe)
     {
-      analogWrite(lmf, 155);
-      analogWrite(rmb, 155);
+      analogWrite(lmf, 100);
+      analogWrite(rmb, 100);
       digitalWrite(rmf, LOW);
       digitalWrite(lmb, LOW);
     }
@@ -191,57 +552,57 @@ void rightTurn()
     {
       digitalWrite(lmf, LOW);
       digitalWrite(rmb, LOW);
+      delay(500);
       break;
     }
   }
 }
-
 void forward()
 {
-
   bool x;
   bool prevstate;
   rotation = 0;
   bool stoper = false;
-  int distance = 0;
+  int distance;
+  unsigned long duration_s,cm_s;
   while (true)
   {
-    digitalWrite(trigPin_s, LOW);
-    delayMicroseconds(2);
-    digitalWrite(trigPin_s, HIGH);
-    delayMicroseconds(10);
-    digitalWrite(trigPin_s, LOW);
-    long duration_s = pulseIn(echoPin_s, HIGH);
-    long cm_s = microsecondsToCentimeters(duration_s);
-    if (cm_s > 1000)
-    {
-      cm_s = 500;
-    }
-    if (cm_s <= 10)
-    {
+   /*   pinMode(ultra_f, OUTPUT);
+
+    digitalWrite(ultra_f, LOW);
+  delayMicroseconds(2);
+  digitalWrite(ultra_f, HIGH);
+  delayMicroseconds(5);
+  digitalWrite(ultra_f, LOW);
+  pinMode(ultra_f, INPUT);
+  duration_s = pulseIn(ultra_f, HIGH);
+  cm_s = microsecondsToCentimeters(duration_s);
+  if (cm_s > 1000)
+  {
+    cm_s = 500;
+  }if (cm_s <= 7) {
       stopBot();
       break;
-    }
+    }*/
     prevstate = x;
-    x = digitalRead(13);
-    if (x != prevstate && x == 1)
+    x = digitalRead(9);
+    if (x != prevstate && x == 0)
     {
       rotation++;
     }
-    distance = rotation * 21 / 40;
+    distance = rotation * 21 / 20;
 
-    if (distance <= 30)
+    if (distance <= 29)
     {
-      digitalWrite(lmf, HIGH);
-      digitalWrite(rmf, HIGH);
+      analogWrite(lmf, 100);
+      analogWrite(rmf, 100);
       digitalWrite(lmb, LOW);
       digitalWrite(rmb, LOW);
     }
     else
     {
-      digitalWrite(lmf, LOW);
-      digitalWrite(rmf, LOW);
-
+      stopBot();
+      delay(500);
       break;
     }
   }
@@ -254,280 +615,35 @@ void stopBot()
   analogWrite(lmf, 0);
   analogWrite(rmf, 0);
 }
-void hazard()
-{
-
-  bool x;
-  bool prevstate;
-  while (true)
-  {
-
-    prevstate = x;
-    x = digitalRead(13);
-    if (x != prevstate && x == 0 && rotation > 0)
-    {
-      rotation--;
-    }
-    if (rotation > 0)
-    {
-      digitalWrite(lmf, LOW);
-      digitalWrite(rmf, LOW);
-      digitalWrite(lmb, HIGH);
-      digitalWrite(rmb, HIGH);
-    }
-    else
-    {
-      digitalWrite(lmf, LOW);
-      digitalWrite(rmf, LOW);
-      digitalWrite(lmb, LOW);
-      digitalWrite(rmb, LOW);
-      break;
-    }
-  }
-  uturn();
-
-  for (int x = 0; x < count - last[lstcounter - 1]; x++)
-  {
-    Serial.println(arr[count - x]);
-    if (arr[count - x] == 2)
-    {
-      rightTurn();
-      arr[count - x] = 0;
-    }
-    if (arr[count - x] == -2)
-    {
-      leftTurn();
-      arr[count - x] = 0;
-    }
-    if (arr[count - x] == 1)
-    {
-      forward();
-      arr[count - x] = 0;
-    }
-  }
-  count = last[lstcounter];
-  last[lstcounter] = 0;
-  lstcounter--;
-  if (togo[tgcount - 1] == -2)
-  {
-    leftTurn();
-  }
-  if (togo[tgcount - 1] == 2)
-  {
-    rightTurn();
-  }
-  if (togo[tgcount - 1] == 1)
-  {
-    forward();
-  }
-}
-void BackItUp()
+void retreat() // Cool Your Name
 {
   bool x;
   bool prevstate;
+  rotation = 0;
+  bool stoper = false;
+  int distance = 0;
   while (true)
   {
-
     prevstate = x;
-    x = digitalRead(13);
-    if (x != prevstate && x == 0 && rotation > 0)
+    x = digitalRead(9);
+    if (x != prevstate && x == 1)
     {
-      rotation--;
+      rotation++;
     }
-    if (rotation > 0)
+    distance = rotation * 21 / 20;
+
+    if (distance <= 28)
     {
+      analogWrite(lmb, 100);
+      analogWrite(rmb, 100);
       digitalWrite(lmf, LOW);
       digitalWrite(rmf, LOW);
-      digitalWrite(lmb, HIGH);
-      digitalWrite(rmb, HIGH);
     }
     else
     {
-      digitalWrite(lmf, LOW);
-      digitalWrite(rmf, LOW);
-      digitalWrite(lmb, LOW);
-      digitalWrite(rmb, LOW);
+      stopBot();
+      delay(500);
       break;
-    }
-  }
-}
-void visitall(int s)
-{
-  Serial.println("visitall");
-  delay(1000);
-  long duration_r, cm_r, duration_l, cm_l, duration_s, cm_s;
-
-  digitalWrite(trigPin_l, LOW);
-  delayMicroseconds(2);
-  digitalWrite(trigPin_l, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(trigPin_l, LOW);
-  duration_l = pulseIn(echoPin_l, HIGH);
-  cm_l = microsecondsToCentimeters(duration_l);
-  if (cm_l > 1000)
-  {
-    cm_l = 500;
-  }
-
-  digitalWrite(trigPin_r, LOW);
-  delayMicroseconds(2);
-  digitalWrite(trigPin_r, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(trigPin_r, LOW);
-  duration_r = pulseIn(echoPin_r, HIGH);
-  cm_r = microsecondsToCentimeters(duration_r);
-  if (cm_r > 1000)
-  {
-    cm_r = 500;
-  }
-
-  digitalWrite(trigPin_s, LOW);
-  delayMicroseconds(2);
-  digitalWrite(trigPin_s, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(trigPin_s, LOW);
-  duration_s = pulseIn(echoPin_s, HIGH);
-  cm_s = microsecondsToCentimeters(duration_s);
-  if (cm_s > 1000)
-  {
-    cm_s = 500;
-  }
-
-  Serial.print("front: ");
-  Serial.print(cm_s);
-  Serial.print(" left: ");
-  Serial.print(cm_l);
-  Serial.print(" right: ");
-  Serial.println(cm_r);
-  if (cm_l >= 15)
-  {
-    left = true;
-  }
-  if (cm_l <= 15)
-  {
-    left = false;
-  }
-  if (cm_r >= 15)
-  {
-    right = true;
-  }
-  if (cm_r <= 15)
-  {
-    right = false;
-  }
-
-  if (cm_s >= 18)
-  {
-    front = true;
-  }
-  if (cm_s <= 18)
-  {
-    front = false;
-  }
-
-  if (s == 1)
-  {
-    if (front == true)
-    {
-      forward();
-      visitall(1);
-      BackItUp();
-      visitall(-2);
-      visitall(2);
-    }
-    if (right == true){
-      rightTurn();
-      forward();
-      leftTurn();
-      visitall(1);
-      rightTurn();
-      BackItUp();
-      leftTurn();
-      visitall(1);
-      visitall(2);
-    }
-    if (left == true)
-    {
-      leftTurn();
-      forward();
-      rightTurn();
-      visitall(1);
-      leftTurn();
-      BackItUp();
-      rightTurn();
-      visitall(-2);
-      visitall(1);
-    }
-  }
-  if (s == 2)
-  {
-
-    if (left == true)
-    {
-      leftTurn();
-      forward();
-      rightTurn();
-      visitall(1);
-      leftTurn();
-      BackItUp();
-      rightTurn();
-      visitall(-2);
-      visitall(1);
-    }
-    if (right == true)
-    {
-      rightTurn();
-      forward();
-      leftTurn();
-      visitall(1);
-      rightTurn();
-      BackItUp();
-      leftTurn();
-      visitall(1);
-      visitall(2);
-    }
-    if (front == true)
-    {
-      forward();
-      visitall(1);
-      BackItUp();
-      visitall(-2);
-      visitall(2);
-    }
-  }
-  if (s == -2)
-  {
-    if (right == true)
-    {
-      rightTurn();
-      forward();
-      leftTurn();
-      visitall(1);
-      rightTurn();
-      BackItUp();
-      leftTurn();
-      visitall(1);
-      visitall(2);
-    }
-    if (left == true)
-    {
-      leftTurn();
-      forward();
-      rightTurn();
-      visitall(1);
-      leftTurn();
-      BackItUp();
-      rightTurn();
-      visitall(-2);
-      visitall(1);
-    }
-    if (front == true)
-    {
-      forward();
-      visitall(1);
-      BackItUp();
-      visitall(-2);
-      visitall(2);
     }
   }
 }
