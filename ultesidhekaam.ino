@@ -1,5 +1,5 @@
-const int rmb = 6;      //Left motor forward
-const int rmf = 5;      //Left motor backward
+const int rmb = 6;      
+const int rmf = 5;      
 const int lmb = 8;      //Right motor forward
 const int lmf = 7;      //Right motor backward
 const int ultra_l = 4;  //right sensor trigger pin
@@ -21,6 +21,9 @@ bool dfront = false;
 int hazarder = 0;
 int victimer = 0;
 int gogoagone[64][2];
+int x=0;
+int y=0;
+
 void setup()
 {
   Serial.begin(9600);
@@ -34,8 +37,7 @@ void setup()
   pinMode(9, INPUT);
   pinMode(2, INPUT);
   pinMode(20, INPUT);
-
- visitall(0, 0);
+  visitall();
 }
 
 void loop()
@@ -52,86 +54,35 @@ long microsecondsToCentimeters(long microseconds)
   return microseconds / 29 / 2;
 }
 
-void Front(int x, int y)
+void Front()
 {
   forward();
-  if (direction == "f")
-  {
-    x += 1;
-  }
-  if (direction == "b")
-  {
-    x -= 1;
-  }
-  if (direction == "l")
-  {
-    y += 1;
-  }
-  if (direction == "r")
-  {
-    y -= 1;
-  }
-  visitall(x, y);
+  visitall();
   retreat();
 }
-void cursedRight(int x, int y)
+void cursedRight()
 {
   rightTurn();
+  if(dleft==false){
+    buckitup();
+  }
   forward();
-  if (direction == "f")
-  {
-    x += 1;
-  }
-  if (direction == "b")
-  {
-    x -= 1;
-  }
-  if (direction == "l")
-  {
-    y += 1;
-  }
-  if (direction == "r")
-  {
-    y -= 1;
-  }
-  visitall(x, y);
- // leftTurn();
-  
+  visitall();  
   retreat();
-   delay(500);
-
   leftTurn();
 }
-void cursedLeft(int x, int y)
+void cursedLeft()
 {
   leftTurn();
+  if(dright==false){
+    buckitup();
+  }
   forward();
-  if (direction == "f")
-  {
-    x += 1;
-  }
-  if (direction == "b")
-  {
-    x -= 1;
-  }
-  if (direction == "l")
-  {
-    y += 1;
-  }
-  if (direction == "r")
-  {
-    y -= 1;
-  }
-   // rightTurn();
-  visitall(x, y);
-   // leftTurn();
- 
+  visitall();
   retreat();
-    delay(500);
-
   rightTurn();
 }
-void visitall(int x, int y)
+void visitall()
 {
   gogoagone[glength][0] = x;
   gogoagone[glength][1] = y;
@@ -142,80 +93,80 @@ void visitall(int x, int y)
 
   if (dfront == true && dleft == false && dright == false)
   {
-    if (valid(x, y, "f"))
+    if (valid("f"))
     {
-      Front(x, y);
+      Front();
     }
   }
   if (dright == true && dleft == false && dfront == false)
   {
-    if (valid(x, y, "r"))
+    if (valid("r"))
     {
-      cursedRight(x, y);
+      cursedRight();
     }
   }
   if (dleft == true && dright == false && dfront == false)
   {
-    if (valid(x, y, "l"))
+    if (valid("l"))
     {
-      cursedLeft(x, y);
+      cursedLeft();
     }
   }
   if (dright == true && dleft == true && dfront == false)
   {
-    if (valid(x, y, "r"))
+    if (valid("r"))
     {
-      cursedRight(x, y);
+      cursedRight();
     }
-    if (valid(x, y, "l"))
+    if (valid("l"))
     {
 
-      cursedLeft(x, y);
+      cursedLeft();
     }
   }
   if (dright == true && dleft == false && dfront == true)
   {
-    if (valid(x, y, "f"))
+    if (valid("f"))
     {
 
-      Front(x, y);
+      Front();
     }
-    if (valid(x, y, "r"))
+    if (valid("r"))
     {
 
-      cursedRight(x, y);
+      cursedRight();
     }
   }
   if (dright == false && dleft == true && dfront == true)
   {
-    if (valid(x, y, "f"))
+    if (valid("f"))
     {
-      Front(x, y);
+      Front();
     }
-    if (valid(x, y, "l"))
+    if (valid( "l"))
     {
-      cursedLeft(x, y);
+      cursedLeft();
     }
   }
   if (dright == true && dleft == true && dfront == true)
   {
 
-    if (valid(x, y, "f"))
+    if (valid("f"))
     {
-      Front(x, y);
+      Front();
     }
-    if (valid(x, y, "r"))
+    if (valid("r"))
     {
-      cursedRight(x, y);
+      cursedRight();
     }
-    if (valid(x, y, "l"))
+    if (valid("l"))
     {
-      cursedLeft(x, y);
+      cursedLeft();
     }
   }
 }
 
-bool valid(int x, int y, String s){
+bool valid(String s){
   int tx;
   int ty;
   if (s == "f")
@@ -413,12 +364,10 @@ void measure()
 }
 void leftTurn()
 {
-  if (direction == "f")
-  {
+  if (direction == "f"){
     direction = "l";
   }
-  else if (direction == "l")
-  {
+  else if (direction == "l"){
     direction = "b";
   }
   else if (direction == "b")
@@ -460,6 +409,14 @@ void leftTurn()
       break;
     }
   }
+}
+void buckitup(){
+  analogWrite(rmb,100);
+  analogWrite(lmb,100);
+  digitalWrite(rmf,LOW);
+  digitalWrite(Lmf,LOW);
+  delay(400);
+  stopBot();
 }
 void uturn()
 {
@@ -567,9 +524,8 @@ void forward()
   unsigned long duration_s,cm_s;
   while (true)
   {
-   /*   pinMode(ultra_f, OUTPUT);
-
-    digitalWrite(ultra_f, LOW);
+  pinMode(ultra_f, OUTPUT);
+  digitalWrite(ultra_f, LOW);
   delayMicroseconds(2);
   digitalWrite(ultra_f, HIGH);
   delayMicroseconds(5);
@@ -583,7 +539,7 @@ void forward()
   }if (cm_s <= 7) {
       stopBot();
       break;
-    }*/
+    }
     prevstate = x;
     x = digitalRead(9);
     if (x != prevstate && x == 0)
@@ -600,11 +556,26 @@ void forward()
       digitalWrite(rmb, LOW);
     }
     else
-    {
-      stopBot();
-      delay(500);
-      break;
-    }
+    { if (direction == "f")
+  {
+    x += 1;
+  }
+  if (direction == "b")
+  {
+    x -= 1;
+  }
+  if (direction == "l")
+  {
+    y += 1;
+  }
+  if (direction == "r")
+  {
+    y -= 1;
+  }
+  stopBot();
+  delay(500);
+  break;
+  }
   }
 }
 
