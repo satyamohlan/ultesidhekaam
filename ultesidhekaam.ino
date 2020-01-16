@@ -1,12 +1,13 @@
-const int rmb = 6;      
-const int rmf = 5;      
+const int rmb = 9;      
+const int rmf = 4;      
 const int lmb = 8;      //Right motor forward
 const int lmf = 7;      //Right motor backward
 const int ultra_l = 4;  //right sensor trigger pin
 const int ultra_f = 3;  //right sensor echo pin
 const int ultra_r = 2;  //left sensor trigger pin
 const int ultra_b = 10; //sraight sensor echo pin
-
+#define PWM_MOTOR_1 5
+#define PWM_MOTOR_2 6
 int rotation = 0;
 int degree = 0;
 int glength = 0;
@@ -26,6 +27,7 @@ int y=0;
 
 void setup()
 {
+  
   Serial.begin(9600);
   pinMode(lmf, OUTPUT);
   pinMode(lmb, OUTPUT);
@@ -84,6 +86,8 @@ void cursedLeft()
 }
 void visitall()
 {
+  digitalWrite(EN_PIN_1, HIGH);
+  digitalWrite(EN_PIN_2, HIGH); 
   gogoagone[glength][0] = x;
   gogoagone[glength][1] = y;
   glength++;
@@ -336,31 +340,10 @@ void measure()
   Serial.println(cm_l);
   Serial.print("right:");
   Serial.println(cm_r);
-  /*if (direction == "f")
-  {*/
   dfront = front;
   dleft = left;
   dright = right;
-  /*}
 
-  if (direction == "l")
-  {
-    dfront = right;
-    dleft = front;
-    dright = back;
-  }
-  if (direction == "r")
-  {
-    dfront = left;
-    dleft = back;
-    dright = front;
-  }
-  if (direction == "b")
-  {
-    dright = back;
-    dleft = right;
-    dleft = left;
-  }*/
 }
 void leftTurn()
 {
@@ -396,10 +379,8 @@ void leftTurn()
     }
     if (degree <= stripe)
     {
-      analogWrite(rmf, 100);
-      analogWrite(lmb, 100);
-      digitalWrite(rmb, LOW);
-      digitalWrite(lmf, LOW);
+        MotorGo(1,-1,100);
+        MotorGo(2,1,100);
     }
     else
     {
@@ -411,15 +392,15 @@ void leftTurn()
   }
 }
 void buckitup(){
-  analogWrite(rmb,100);
-  analogWrite(lmb,100);
-  digitalWrite(rmf,LOW);
-  digitalWrite(Lmf,LOW);
+  MotorGo(1,-1,100);
+  MotorGo(2,-1,100);
   delay(400);
   stopBot();
 }
+/*
 void uturn()
 {
+  
   if (direction == "f")
   {
     direction = "b";
@@ -458,13 +439,12 @@ void uturn()
     }
     else
     {
-
-      digitalWrite(lmf, LOW);
-      digitalWrite(rmb, LOW);
+      stopBot();
       break;
     }
   }
 }
+*/
 
 void rightTurn()
 {
@@ -499,17 +479,13 @@ void rightTurn()
     }
     if (degree <= stripe)
     {
-      analogWrite(lmf, 100);
-      analogWrite(rmb, 100);
-      digitalWrite(rmf, LOW);
-      digitalWrite(lmb, LOW);
+      MotorGo(1,1,100);
+      MotorGo(2,-1,100);
     }
 
     else
     {
-      digitalWrite(lmf, LOW);
-      digitalWrite(rmb, LOW);
-      delay(500);
+      stopBot();
       break;
     }
   }
@@ -550,10 +526,8 @@ void forward()
 
     if (distance <= 29)
     {
-      analogWrite(lmf, 100);
-      analogWrite(rmf, 100);
-      digitalWrite(lmb, LOW);
-      digitalWrite(rmb, LOW);
+        MotorGo(1,1,100);
+        MotorGo(2,1,100);
     }
     else
     { if (direction == "f")
@@ -581,10 +555,8 @@ void forward()
 
 void stopBot()
 {
-  analogWrite(lmb, 0);
-  analogWrite(rmb, 0);
-  analogWrite(lmf, 0);
-  analogWrite(rmf, 0);
+  MotorGo(2,0,0);
+  MotorGo(1,0,0);
 }
 void retreat() // Cool Your Name
 {
@@ -605,10 +577,8 @@ void retreat() // Cool Your Name
 
     if (distance <= 28)
     {
-      analogWrite(lmb, 100);
-      analogWrite(rmb, 100);
-      digitalWrite(lmf, LOW);
-      digitalWrite(rmf, LOW);
+     MotorGo(1,-1,100);
+     MotorGo(2,-1,100);
     }
     else
     {
@@ -616,5 +586,48 @@ void retreat() // Cool Your Name
       delay(500);
       break;
     }
+  }
+}
+void motorGo(int motor, int direct, int pwm)         //Function that controls the variables: motor(0 ou 1), direction (cw ou ccw) e pwm (entra 0 e 255);
+{
+  if(motor == 1)
+  {
+    if(direct == 1)
+    {
+      digitalWrite(lmf, LOW); 
+      digitalWrite(lmb, HIGH);
+    }
+    else if(direct == -1)
+    {
+      digitalWrite(lmf, HIGH);
+      digitalWrite(lmb, LOW);      
+    }
+    else
+    {
+      digitalWrite(lmf, LOW);
+      digitalWrite(lmb, LOW);            
+    }
+    
+    analogWrite(PWM_MOTOR_1, pwm); 
+  }
+  else if(motor == 2)
+  {
+    if(direct == 1)
+    {
+      digitalWrite(rmf, LOW);
+      digitalWrite(rmb, HIGH);
+    }
+    else if(direct == -1)
+    {
+      digitalWrite(rmf, HIGH);
+      digitalWrite(rmb, LOW);      
+    }
+    else
+    {
+      digitalWrite(rmf, LOW);
+      digitalWrite(rmb, LOW);            
+    }
+    
+    analogWrite(PWM_MOTOR_2, pwm);
   }
 }
